@@ -1,0 +1,149 @@
+# =============================================================================
+# OS / 系统临时文件
+# =============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# =============================================================================
+# IDE / 编辑器
+# =============================================================================
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+.idea/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+.history/
+.cursor/
+
+# =============================================================================
+# Python
+# =============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+.eggs/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.dmypy.json
+dmypy.json
+.hypothesis/
+*.manifest
+*.spec
+
+# 虚拟环境
+.venv/
+venv/
+env/
+ENV/
+.envrc
+
+# 构建 / 分发
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.whl
+MANIFEST
+pip-wheel-metadata/
+site/
+
+# =============================================================================
+# 环境变量 / 密钥（勿提交）
+# =============================================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+
+# =============================================================================
+# 本项目生成物
+# =============================================================================
+
+# 测试目录
+tests/
+test/
+
+# =============================================================================
+# 日志 / 缓存 / 临时文件
+# =============================================================================
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.cache/
+tmp/
+temp/
+
+# =============================================================================
+# Jupyter / Notebook
+# =============================================================================
+.ipynb_checkpoints/
+*.nbconvert.ipynb
+
+# =============================================================================
+# 其他语言常见临时文件（按需）
+# =============================================================================
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Java
+*.class
+*.jar
+*.war
+target/
+
+# C / C++
+*.o
+*.out
+*.exe
+
+# LaTeX
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.toc

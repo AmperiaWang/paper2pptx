@@ -1,5 +1,12 @@
 """
 提示词加载与 LLM 输出解析。
+
+提示词模板中的占位符（由 pipeline 注入）：
+  {paper_text}       — 论文全文或分片摘要
+  {figure_catalog}   — 提取的 Figure 清单
+  {table_catalog}    — 提取的 Table 清单
+  {narrative}        — build_narrative 生成的内心推理链
+  {paper_structure}  — paper_structure.json 格式化后的章节骨架（见 paper_structure.py）
 """
 
 from __future__ import annotations
@@ -33,7 +40,7 @@ def load_prompts(
     lang = normalize_lang(lang)
     if lang not in SUPPORTED_LANGS:
         raise ValueError(
-            f"不支持的语言: {lang}。可选: {', '.join(SUPPORTED_LANGS)}"
+            f"Unsupported language: {lang}. Choose: {', '.join(SUPPORTED_LANGS)}"
         )
 
     prompt_path = Path(path) if path else Path(__file__).resolve().parent.parent / "prompt.json"

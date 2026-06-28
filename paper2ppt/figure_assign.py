@@ -141,15 +141,10 @@ def assign_figures_to_slides(
         if slide.get("type") != "content":
             slide.pop("figure", None)
 
-    # Pass 1：保留 LLM 已填写且位于 Methods/Experiments 章节的 figure
-    for slide, section in content_with_section:
+    # Pass 1：保留 LLM 已填写的有效 figure（不限章节）
+    for slide, _section in content_with_section:
         fid = normalize_figure_id(slide.get("figure"))
-        if (
-            fid
-            and fid in available
-            and fid not in used
-            and _section_allows_auto_assign(section)
-        ):
+        if fid and fid in available and fid not in used:
             slide["figure"] = fid
             used.add(fid)
         else:
@@ -182,6 +177,19 @@ def assign_figures_to_slides(
         if best_slide and best_score >= MIN_CAPTION_MATCH_SCORE:
             best_slide["figure"] = figure.figure_id
             used.add(figure.figure_id)
+
+    # Pass 4：兜底 — 将未分配的 Figure 依次放到方法/实验章节的无图 content 页
+    eligible = [
+        slide
+        for slide, section in content_with_section
+        if not slide.get("figure") and _section_allows_auto_assign(section)
+    ]
+    for figure in sorted(figures, key=lambda f: f.number):
+        if figure.figure_id in used or not eligible:
+            continue
+        target = eligible.pop(0)
+        target["figure"] = figure.figure_id
+        used.add(figure.figure_id)
 
     content_slides = [s for s, _ in content_with_section]
     return sum(1 for s in content_slides if s.get("figure"))

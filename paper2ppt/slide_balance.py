@@ -13,12 +13,12 @@ from __future__ import annotations
 import copy
 import re
 
-# 单页容量（与 prompt 中 3–5 条分析性 bullet 对齐）
+# 单页容量（叙事链 + 分析 bullet）
 LIMITS = {
-    "no_figure": {"max_bullets": 5, "max_chars": 450, "max_bullet_chars": 100},
-    "with_figure": {"max_bullets": 4, "max_chars": 320, "max_bullet_chars": 90},
+    "no_figure": {"max_bullets": 7, "max_chars": 950, "max_bullet_chars": 200},
+    "with_figure": {"max_bullets": 5, "max_chars": 700, "max_bullet_chars": 180},
 }
-MAX_TITLE_CHARS = 36
+MAX_TITLE_CHARS = 40
 
 
 def balance_slides(slides: list[dict], lang: str = "zh_cn") -> list[dict]:
@@ -37,9 +37,14 @@ def balance_slides(slides: list[dict], lang: str = "zh_cn") -> list[dict]:
             continue
 
         base = copy.deepcopy(slide)
+        if not (base.get("title") or "").strip():
+            base["title"] = base.get("section") or ("要点" if lang.startswith("zh") else "Key Points")
         base["title"] = _truncate(base.get("title", ""), MAX_TITLE_CHARS)
         has_figure = bool(base.get("figure"))
-        limits = LIMITS["with_figure" if has_figure else "no_figure"]
+        has_table = bool(base.get("table") or base.get("table_data"))
+        limits = LIMITS["with_figure" if (has_figure or has_table) else "no_figure"]
+
+        base.pop("bridge", None)
 
         bullets = [
             _truncate(b, limits["max_bullet_chars"])
@@ -60,6 +65,10 @@ def balance_slides(slides: list[dict], lang: str = "zh_cn") -> list[dict]:
                     f"{base['title']}{cont_suffix}", MAX_TITLE_CHARS + 4
                 )
                 page.pop("figure", None)
+                page.pop("table", None)
+                page.pop("table_data", None)
+            else:
+                page.pop("bridge", None)
             page["bullets"] = chunk
             result.append(page)
 
@@ -71,18 +80,22 @@ def estimate_content_font_size(bullets: list[str], has_figure: bool) -> int:
     count = len(bullets)
     total = sum(len(b) for b in bullets)
     if has_figure:
-        if total > 240 or count > 4:
+        if total > 480 or count > 5:
+            return 12
+        if total > 360 or count > 4:
             return 13
-        if total > 180 or count > 3:
+        if total > 260:
             return 14
         return 15
-    if total > 380 or count > 6:
+    if total > 650 or count > 7:
+        return 12
+    if total > 520 or count > 6:
         return 13
-    if total > 280 or count > 5:
+    if total > 380:
         return 14
-    if total > 200:
+    if total > 260:
         return 16
-    return 18
+    return 17
 
 
 def estimate_title_font_size(title: str, default: int = 28) -> int:

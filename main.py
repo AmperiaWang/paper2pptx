@@ -14,35 +14,40 @@ from paper2ppt.prompts import DEFAULT_LANG, LANG_ALIASES, SUPPORTED_LANGS, norma
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="将研究论文 PDF 转换为 PowerPoint 演示文稿",
+        description="Convert a research paper PDF into a PowerPoint presentation",
     )
-    parser.add_argument("pdf", help="输入的论文 PDF 文件路径")
+    parser.add_argument("pdf", help="Input PDF file path")
     parser.add_argument(
         "--backend",
         default="ollama",
         choices=SUPPORTED_BACKENDS,
-        help="LLM 后端 (默认: ollama)",
+        help="LLM backend (default: ollama)",
     )
-    parser.add_argument("--apikey", help="在线大模型 API Key (openai/deepseek 必填)")
-    parser.add_argument("--model", help="指定模型名称")
+    parser.add_argument("--apikey", help="API key for online LLMs (required for openai/deepseek)")
+    parser.add_argument("--model", help="Model name override")
     parser.add_argument(
         "--output", "-o",
-        help="输出 PPT 文件路径 (默认: 与 PDF 同名的 .pptx)",
+        help="Output .pptx path (default: same name as PDF)",
     )
     parser.add_argument(
         "--prompt",
-        help="自定义提示词文件路径 (默认: prompt.json)",
+        help="Custom prompt file (default: prompt.json)",
+    )
+    parser.add_argument(
+        "--structure",
+        default=None,
+        help="Deck structure JSON (default: paper_structure.json)",
     )
     parser.add_argument(
         "--lang",
         default=DEFAULT_LANG,
         choices=[*SUPPORTED_LANGS, *LANG_ALIASES.keys()],
-        help="PPT 语言 (默认: zh_cn 简体中文; en_us 美式英文)",
+        help="Slide language (default: zh_cn; en_us for English)",
     )
     parser.add_argument(
         "--template",
         default=str(DEFAULT_TEMPLATE),
-        help="PPT 母版模板文件 (默认: template/index.pptx)",
+        help="PowerPoint template file (default: template/index.pptx)",
     )
     return parser
 
@@ -52,12 +57,12 @@ def main(argv: list[str] | None = None) -> int:
 
     pdf_path = Path(args.pdf)
     if not pdf_path.exists():
-        print(f"错误: 找不到文件 {pdf_path}", file=sys.stderr)
+        print(f"Error: file not found: {pdf_path}", file=sys.stderr)
         return 1
 
     template_path = Path(args.template)
     if not template_path.exists():
-        print(f"错误: 找不到模板文件 {template_path}", file=sys.stderr)
+        print(f"Error: template not found: {template_path}", file=sys.stderr)
         return 1
 
     try:
@@ -67,11 +72,11 @@ def main(argv: list[str] | None = None) -> int:
             model=args.model,
         )
     except (ValueError, RuntimeError) as exc:
-        print(f"错误: {exc}", file=sys.stderr)
+        print(f"Error: {exc}", file=sys.stderr)
         return 1
 
     if args.backend == "ollama":
-        print(f"使用 Ollama 模型: {backend.model}")
+        print(f"Using Ollama model: {backend.model}")
 
     try:
         run_pipeline(
@@ -79,11 +84,12 @@ def main(argv: list[str] | None = None) -> int:
             backend,
             output_path=args.output,
             prompt_path=args.prompt,
+            structure_path=args.structure,
             lang=normalize_lang(args.lang),
             template_path=template_path,
         )
     except Exception as exc:
-        print(f"错误: {exc}", file=sys.stderr)
+        print(f"Error: {exc}", file=sys.stderr)
         return 1
 
     return 0

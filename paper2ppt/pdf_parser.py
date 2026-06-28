@@ -48,6 +48,7 @@ class PaperContent:
     text: str
     title: str = ""
     figures: list[PaperFigure] = field(default_factory=list)
+    tables: list = field(default_factory=list)  # list[PaperTable]
     assets_dir: Path | None = None
 
 
@@ -102,7 +103,7 @@ def extract_pdf(pdf_path: str | Path, output_dir: str | Path | None = None) -> P
     """
     pdf_path = Path(pdf_path)
     if not pdf_path.exists():
-        raise FileNotFoundError(f"找不到 PDF 文件: {pdf_path}")
+        raise FileNotFoundError(f"PDF file not found: {pdf_path}")
 
     assets_dir = Path(output_dir) if output_dir else default_assets_dir(pdf_path)
     # 清空旧缓存，避免 figure 编号与旧文件混淆
@@ -117,6 +118,9 @@ def extract_pdf(pdf_path: str | Path, output_dir: str | Path | None = None) -> P
         pages_text.append(page.get_text())
 
     figures = _extract_figures(doc, assets_dir)
+    from paper2ppt.table_extract import extract_tables
+
+    tables = extract_tables(doc, assets_dir)
     doc.close()
 
     full_text = "\n\n".join(pages_text).strip()
@@ -126,6 +130,7 @@ def extract_pdf(pdf_path: str | Path, output_dir: str | Path | None = None) -> P
         text=full_text,
         title=title,
         figures=figures,
+        tables=tables,
         assets_dir=assets_dir,
     )
 

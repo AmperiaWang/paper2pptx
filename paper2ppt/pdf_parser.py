@@ -22,7 +22,7 @@ import fitz  # pymupdf
 
 # 行首 Figure/Fig./图 N，且序号后紧跟冒号或句点（排除 "Fig. 4 depicts..." 类正文句）
 FIGURE_CAPTION_RE = re.compile(
-    r"^(?:Figure|Fig\.?)\s*(\d+)\s*[:\.]|^图\s*(\d+)\s*[：:]",
+    r"^(?:Figure|Fig\.?)\s*(\d+)\s*[-–—:\.]|^图\s*(\d+)\s*[-–—：:]",
     re.IGNORECASE,
 )
 
@@ -47,7 +47,9 @@ class PaperContent:
 
     text: str
     title: str = ""
+    authors: str = ""
     figures: list[PaperFigure] = field(default_factory=list)
+    tables: list = field(default_factory=list)  # list[PaperTable]
     assets_dir: Path | None = None
 
 
@@ -102,7 +104,7 @@ def extract_pdf(pdf_path: str | Path, output_dir: str | Path | None = None) -> P
     """
     pdf_path = Path(pdf_path)
     if not pdf_path.exists():
-        raise FileNotFoundError(f"找不到 PDF 文件: {pdf_path}")
+        raise FileNotFoundError(f"PDF file not found: {pdf_path}")
 
     assets_dir = Path(output_dir) if output_dir else default_assets_dir(pdf_path)
     # 清空旧缓存，避免 figure 编号与旧文件混淆
@@ -117,15 +119,23 @@ def extract_pdf(pdf_path: str | Path, output_dir: str | Path | None = None) -> P
         pages_text.append(page.get_text())
 
     figures = _extract_figures(doc, assets_dir)
-    doc.close()
+    from paper2ppt.table_extract import extract_tables
 
-    full_text = "\n\n".join(pages_text).strip()
-    title = _guess_title(pages_text[0] if pages_text else "")
+    tables = extract_tables(doc, assets_dir)
+
+    main_pages = _pages_before_references(pages_text)
+    full_text = "\n\n".join(
+        f"[PDF page {index}]\n{text}" for index, text in enumerate(main_pages, start=1)
+    ).strip()
+    title, authors = _extract_front_matter(doc[0] if len(doc) else None)
+    doc.close()
 
     return PaperContent(
         text=full_text,
         title=title,
+        authors=authors,
         figures=figures,
+        tables=tables,
         assets_dir=assets_dir,
     )
 
@@ -261,7 +271,11 @@ def _save_page_clip(page: fitz.Page, caption_rect: fitz.Rect, out_path: Path) ->
     """裁剪图注上方的页面区域作为 Figure（无嵌入图时的 fallback）。"""
     page_rect = page.rect
     margin = 36
-    top = page_rect.y0 + margin
+    top = _vector_figure_top(page, caption_rect)
+    if top is None:
+        # Most paper figures are within roughly 260 pt above their caption.
+        # Limiting the crop avoids swallowing the page header and body text.
+        top = max(page_rect.y0 + margin, caption_rect.y0 - 280)
     bottom = caption_rect.y0 - 8
     left = page_rect.x0 + margin
     right = page_rect.x1 - margin
@@ -278,6 +292,24 @@ def _save_page_clip(page: fitz.Page, caption_rect: fitz.Rect, out_path: Path) ->
         return False
 
 
+def _vector_figure_top(page: fitz.Page, caption_rect: fitz.Rect) -> float | None:
+    """根据 PDF 矢量绘图边界估计 Figure 顶部，避免截入正文。"""
+    rects: list[fitz.Rect] = []
+    for drawing in page.get_drawings():
+        rect = drawing.get("rect")
+        if not rect or rect.get_area() < 20:
+            continue
+        if rect.y1 <= caption_rect.y0 + 4 and caption_rect.y0 - rect.y1 <= 320:
+            rects.append(rect)
+    if not rects:
+        return None
+    top = min(rect.y0 for rect in rects)
+    bottom = max(rect.y1 for rect in rects)
+    if bottom - top < 45:
+        return None
+    return max(page.rect.y0 + 18, top - 10)
+
+
 def _write_png(image_bytes: bytes, out_path: Path) -> None:
     """将图片字节写入 PNG 文件（必要时经 Pillow 转格式）。"""
     try:
@@ -291,10 +323,41 @@ def _write_png(image_bytes: bytes, out_path: Path) -> None:
         out_path.write_bytes(image_bytes)
 
 
-def _guess_title(first_page: str) -> str:
-    """从首页文本启发式猜测论文标题。"""
-    for line in first_page.splitlines():
-        line = line.strip()
-        if len(line) > 10 and not line.isdigit():
-            return line[:200]
-    return ""
+def _pages_before_references(pages_text: list[str]) -> list[str]:
+    """去掉 References 及其后的附录，避免将引用列表当成论文贡献。"""
+    for index, text in enumerate(pages_text):
+        if any(line.strip().lower() == "references" for line in text.splitlines()):
+            return pages_text[:index]
+    return pages_text
+
+
+def _extract_front_matter(page: fitz.Page | None) -> tuple[str, str]:
+    """根据首页字号提取标题与作者，比让 LLM 从分片笔记猜测更稳定。"""
+    if page is None:
+        return "", ""
+    blocks: list[tuple[float, float, str]] = []
+    for block in page.get_text("dict").get("blocks", []):
+        if block.get("type") != 0:
+            continue
+        text = " ".join(
+            "".join(span.get("text", "") for span in line.get("spans", []))
+            for line in block.get("lines", [])
+        ).strip()
+        sizes = [
+            span.get("size", 0)
+            for line in block.get("lines", [])
+            for span in line.get("spans", [])
+        ]
+        if text and sizes:
+            blocks.append((max(sizes), block["bbox"][1], text))
+    title_blocks = [text for size, y, text in blocks if y < 140 and size >= 12]
+    title = " ".join(title_blocks).strip()
+    author = next(
+        (text for size, y, text in blocks if 120 <= y < 200 and 9 <= size < 12),
+        "",
+    )
+    author = re.sub(r"[\*∗†‡+]", "", author)
+    names = [name.strip() for name in author.split(",") if name.strip()]
+    if len(names) > 8:
+        author = ", ".join(names[:8]) + ", et al."
+    return title[:240], author[:240]

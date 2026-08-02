@@ -1,0 +1,47 @@
+[
+    {
+        "title": "Introduction",
+        "focus": [
+            "What is the task of the paper / Which problem is the paper trying to solve?",
+            "Which methods / structures / algorithms / models are used to solve the problem that the paper is trying to solve?",
+            "Are there still some problems that those methods / structures / algorithms / models are not able to solve in the task of the paper?",
+            "How does the paper solve the problem that is not able to be solved by the methods / structures / algorithms / models? / What is the key insight of the paper?",
+            "What evidence is provided by authors to support the key insight of the paper?",
+            "What are the contributions of the paper?"
+        ],
+        "pages": "3 pages"
+    },
+    {
+        "title": "Related Work",
+        "focus": [
+            "What are the related works that the paper is building on?",
+            "What are the limitations of the related works?"
+        ],
+        "pages": "2 pages"
+    },
+    {
+        "title": "Methods",
+        "focus": [
+            "What is the main structure of the work proposed in the paper? Is it a new method / structure / algorithm / model? What does it look like?",
+            "For each of the key insights of the paper, what thing inspires the authors to propose / what is the reason that the authors propose this insight?",
+            "For each of the key insights of the paper, what is the key component of this insight? Try to describe the pipeline / implementation of this insight.",
+            "For each of the key insights of the paper, what is the expectation of the authors? What is the evidence that the authors will provide in experiments to support the expectation?"
+        ],
+        "pages": "6-8 pages; one page for overview and one page for each key component"
+    },
+    {
+        "title": "Experiment",
+        "focus": [
+            "What are the experiments that the paper is conducted? What are the datasets that the experiments are conducted on? What are the metrics that the experiments are evaluated on?",
+            "What are the results of the experiments? How do the results prove the key insights of the paper?"
+        ],
+        "pages": "6-8 pages covering setup, main results, ablations, analysis, efficiency and cases"
+    },
+    {
+        "title": "Conclusion",
+        "focus": [
+            "What are the limitations of the paper? What are the future work that the authors will do?"
+        ],
+        "pages": "2 pages"
+    }
+]

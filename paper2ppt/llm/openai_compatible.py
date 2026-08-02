@@ -50,7 +50,7 @@ class OpenAICompatibleBackend(LLMBackend):
         backend_name: str = "openai",
     ):
         if not api_key:
-            raise ValueError(f"使用 {backend_name} backend 需要提供 --apikey 参数。")
+            raise ValueError(f"--apikey is required for the {backend_name} backend.")
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.model = model or DEFAULT_MODELS.get(backend_name, "gpt-4o")
@@ -97,7 +97,7 @@ class OpenAICompatibleBackend(LLMBackend):
         )
         if not resp.ok:
             raise RuntimeError(
-                f"{self.backend_name} API 请求失败 ({resp.status_code}): {resp.text}"
+                f"{self.backend_name} API request failed ({resp.status_code}): {resp.text}"
             )
         return resp.json()["choices"][0]["message"]["content"]
 

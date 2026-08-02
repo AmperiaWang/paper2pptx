@@ -106,6 +106,11 @@ def _section_allows_auto_assign(section_title: str) -> bool:
     return any(key in lower for key in FIGURE_AUTO_ASSIGN_SECTIONS)
 
 
+def _is_experiment_section(section_title: str) -> bool:
+    lower = section_title.lower()
+    return any(key in lower for key in ("experiment", "evaluation", "results", "实验", "结果"))
+
+
 def _iter_content_with_section(slides: list[dict]):
     """按顺序遍历 content 页，并携带所属章节标题。"""
     current_section = ""
@@ -120,6 +125,8 @@ def _iter_content_with_section(slides: list[dict]):
 def assign_figures_to_slides(
     slides: list[dict],
     figures: list[PaperFigure],
+    *,
+    table_reserve: int = 0,
 ) -> int:
     """
     为 content 类型幻灯片分配 figure 字段。
@@ -135,21 +142,28 @@ def assign_figures_to_slides(
     available = {f.figure_id: f for f in figures}
     used: set[str] = set()
     content_with_section = list(_iter_content_with_section(slides))
+    experiment_slides = [
+        slide for slide, section in content_with_section if _is_experiment_section(section)
+    ]
+    reserved_experiment_pages = min(table_reserve, len(experiment_slides) // 2)
+    max_experiment_figures = len(experiment_slides) - reserved_experiment_pages
+
+    def experiment_has_room() -> bool:
+        assigned = sum(bool(slide.get("figure")) for slide in experiment_slides)
+        return assigned < max_experiment_figures
 
     # 清除非 content 页及历史 figure 字段，再重新分配
     for slide in slides:
         if slide.get("type") != "content":
             slide.pop("figure", None)
 
-    # Pass 1：保留 LLM 已填写且位于 Methods/Experiments 章节的 figure
-    for slide, section in content_with_section:
+    # Pass 1：保留 LLM 已填写的有效 figure（不限章节）
+    for slide, _section in content_with_section:
+        if slide.get("table") or slide.get("table_data"):
+            slide.pop("figure", None)
+            continue
         fid = normalize_figure_id(slide.get("figure"))
-        if (
-            fid
-            and fid in available
-            and fid not in used
-            and _section_allows_auto_assign(section)
-        ):
+        if fid and fid in available and fid not in used:
             slide["figure"] = fid
             used.add(fid)
         else:
@@ -175,6 +189,10 @@ def assign_figures_to_slides(
         for slide, section in content_with_section:
             if slide.get("figure") or not _section_allows_auto_assign(section):
                 continue
+            if slide.get("table") or slide.get("table_data"):
+                continue
+            if _is_experiment_section(section) and not experiment_has_room():
+                continue
             score = caption_match_score(slide_text(slide), figure)
             if score > best_score:
                 best_score = score
@@ -182,6 +200,33 @@ def assign_figures_to_slides(
         if best_slide and best_score >= MIN_CAPTION_MATCH_SCORE:
             best_slide["figure"] = figure.figure_id
             used.add(figure.figure_id)
+
+    # Pass 4：兜底 — 将未分配的 Figure 依次放到方法/实验章节的无图 content 页
+    eligible = [
+        slide
+        for slide, section in content_with_section
+        if not slide.get("figure")
+        and not slide.get("table")
+        and not slide.get("table_data")
+        and _section_allows_auto_assign(section)
+    ]
+    for figure in sorted(figures, key=lambda f: f.number):
+        if figure.figure_id in used or not eligible:
+            continue
+        target = next(
+            (
+                slide
+                for slide in eligible
+                if not _is_experiment_section(slide.get("section") or "")
+                or experiment_has_room()
+            ),
+            None,
+        )
+        if target is None:
+            break
+        eligible.remove(target)
+        target["figure"] = figure.figure_id
+        used.add(figure.figure_id)
 
     content_slides = [s for s, _ in content_with_section]
     return sum(1 for s in content_slides if s.get("figure"))

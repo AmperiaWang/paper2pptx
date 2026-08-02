@@ -46,7 +46,7 @@ def create_backend(
     backend = backend.lower()
     if backend not in SUPPORTED_BACKENDS:
         raise ValueError(
-            f"不支持的 backend: {backend}。可选: {', '.join(SUPPORTED_BACKENDS)}"
+            f"Unsupported backend: {backend}. Choose: {', '.join(SUPPORTED_BACKENDS)}"
         )
 
     if backend == "ollama":

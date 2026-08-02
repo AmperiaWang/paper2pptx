@@ -26,6 +26,7 @@ def flatten_sections(slides: list[dict]) -> list[dict]:
         if slide_type == "section":
             current_section = (slide.get("title") or "").strip()
             first_in_section = True
+            result.append(copy.deepcopy(slide))
             continue
 
         if slide_type == "title":
@@ -42,17 +43,11 @@ def flatten_sections(slides: list[dict]) -> list[dict]:
         if current_section:
             new_slide["section"] = current_section
 
-        if current_section and first_in_section:
-            old_title = (new_slide.get("title") or "").strip()
+        # 保留 LLM 给出的具体页标题（如「动态结构调控机制」），不再用章节名覆盖
+        if current_section and first_in_section and not (new_slide.get("title") or "").strip():
             new_slide["title"] = current_section
-            bullets = list(new_slide.get("bullets") or [])
-            if old_title and old_title != current_section:
-                bullets.insert(0, old_title)
-            new_slide["bullets"] = bullets
-            first_in_section = False
-        else:
-            first_in_section = False
 
+        first_in_section = False
         result.append(new_slide)
 
     return result

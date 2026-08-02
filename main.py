@@ -15,22 +15,34 @@ from paper2ppt.prompts import DEFAULT_LANG, LANG_ALIASES, SUPPORTED_LANGS, norma
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Convert a research paper PDF into a PowerPoint presentation",
+        description="Convert a research paper PDF into a PowerPoint presentation",
     )
+    parser.add_argument("pdf", help="Input PDF file path")
     parser.add_argument("pdf", help="Input PDF file path")
     parser.add_argument(
         "--backend",
         default="ollama",
         choices=SUPPORTED_BACKENDS,
         help="LLM backend (default: ollama)",
+        help="LLM backend (default: ollama)",
     )
+    parser.add_argument("--apikey", help="API key for online LLMs (required for openai/deepseek)")
+    parser.add_argument("--model", help="Model name override")
     parser.add_argument("--apikey", help="API key for online LLMs (required for openai/deepseek)")
     parser.add_argument("--model", help="Model name override")
     parser.add_argument(
         "--output", "-o",
         help="Output .pptx path (default: same name as PDF)",
+        help="Output .pptx path (default: same name as PDF)",
     )
     parser.add_argument(
         "--prompt",
+        help="Custom prompt file (default: prompt.json)",
+    )
+    parser.add_argument(
+        "--structure",
+        default=None,
+        help="Deck structure JSON (default: paper_structure.json)",
         help="Custom prompt file (default: prompt.json)",
     )
     parser.add_argument(
@@ -43,10 +55,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_LANG,
         choices=[*SUPPORTED_LANGS, *LANG_ALIASES.keys()],
         help="Slide language (default: zh_cn; en_us for English)",
+        help="Slide language (default: zh_cn; en_us for English)",
     )
     parser.add_argument(
         "--template",
         default=str(DEFAULT_TEMPLATE),
+        help="PowerPoint template file (default: template/index.pptx)",
         help="PowerPoint template file (default: template/index.pptx)",
     )
     return parser
@@ -58,10 +72,12 @@ def main(argv: list[str] | None = None) -> int:
     pdf_path = Path(args.pdf)
     if not pdf_path.exists():
         print(f"Error: file not found: {pdf_path}", file=sys.stderr)
+        print(f"Error: file not found: {pdf_path}", file=sys.stderr)
         return 1
 
     template_path = Path(args.template)
     if not template_path.exists():
+        print(f"Error: template not found: {template_path}", file=sys.stderr)
         print(f"Error: template not found: {template_path}", file=sys.stderr)
         return 1
 
@@ -72,6 +88,7 @@ def main(argv: list[str] | None = None) -> int:
             model=args.model,
         )
     except (ValueError, RuntimeError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
         print(f"Error: {exc}", file=sys.stderr)
         return 1
 
@@ -87,10 +104,12 @@ def main(argv: list[str] | None = None) -> int:
             output_path=args.output,
             prompt_path=args.prompt,
             structure_path=args.structure,
+            structure_path=args.structure,
             lang=normalize_lang(args.lang),
             template_path=template_path,
         )
     except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
         print(f"Error: {exc}", file=sys.stderr)
         return 1
 

@@ -9,7 +9,7 @@
             "What evidence is provided by authors to support the key insight of the paper?",
             "What are the contributions of the paper?"
         ],
-        "pages": "3 pages"
+        "pages": "1-2 pages"
     },
     {
         "title": "Related Work",
@@ -17,7 +17,7 @@
             "What are the related works that the paper is building on?",
             "What are the limitations of the related works?"
         ],
-        "pages": "2 pages"
+        "pages": "1-2 pages"
     },
     {
         "title": "Methods",
@@ -27,7 +27,7 @@
             "For each of the key insights of the paper, what is the key component of this insight? Try to describe the pipeline / implementation of this insight.",
             "For each of the key insights of the paper, what is the expectation of the authors? What is the evidence that the authors will provide in experiments to support the expectation?"
         ],
-        "pages": "6-8 pages; one page for overview and one page for each key component"
+        "pages": "1 page for each key insight"
     },
     {
         "title": "Experiment",
@@ -35,13 +35,13 @@
             "What are the experiments that the paper is conducted? What are the datasets that the experiments are conducted on? What are the metrics that the experiments are evaluated on?",
             "What are the results of the experiments? How do the results prove the key insights of the paper?"
         ],
-        "pages": "6-8 pages covering setup, main results, ablations, analysis, efficiency and cases"
+        "pages": "2-3 pages"
     },
     {
         "title": "Conclusion",
         "focus": [
             "What are the limitations of the paper? What are the future work that the authors will do?"
         ],
-        "pages": "2 pages"
+        "pages": "1 page"
     }
 ]

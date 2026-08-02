@@ -27,6 +27,7 @@ def create_backend(
     *,
     api_key: str | None = None,
     model: str | None = None,
+    ollama_url: str | None = None,
 ) -> LLMBackend:
     """
     根据名称创建 LLM 后端实例。
@@ -51,7 +52,7 @@ def create_backend(
 
     if backend == "ollama":
         # Ollama 走本地 HTTP，无需 api_key
-        return OllamaBackend(model=model)
+        return OllamaBackend(model=model, base_url=ollama_url)
 
     # openai 与 deepseek 共用 OpenAICompatibleBackend，仅 base_url 不同
     base_urls = {

@@ -16,6 +16,7 @@ Ollama 本地大模型后端 — 通过 HTTP 调用 Ollama 服务。
 from __future__ import annotations
 
 import json
+import os
 import re
 
 import requests
@@ -26,6 +27,14 @@ from paper2ppt.llm.base import LLMBackend
 DEFAULT_OLLAMA_URL = "http://localhost:11434"
 # Ollama 未显式设置 num_ctx 时默认仅 4096，不足以分析整篇论文
 DEFAULT_NUM_CTX = 32_768
+
+
+def _normalize_base_url(value: str | None) -> str:
+    """Return a usable Ollama HTTP base URL from CLI/env input."""
+    host = (value or "").strip() or DEFAULT_OLLAMA_URL
+    if "://" not in host:
+        host = f"http://{host}"
+    return host.rstrip("/")
 
 
 def _parse_model_size(name: str) -> float:
@@ -61,8 +70,8 @@ class OllamaBackend(LLMBackend):
         model   : 当前使用的模型名，如 "qwen3:4b"
     """
 
-    def __init__(self, model: str | None = None, base_url: str = DEFAULT_OLLAMA_URL):
-        self.base_url = base_url.rstrip("/")
+    def __init__(self, model: str | None = None, base_url: str | None = None):
+        self.base_url = _normalize_base_url(base_url or os.getenv("OLLAMA_HOST"))
         # 未指定 model 时自动选择本机最合适的模型
         self.model = model or self._auto_select_model()
         self.json_model = self._select_json_model(self.model)
@@ -124,8 +133,10 @@ class OllamaBackend(LLMBackend):
         except requests.ConnectionError:
             raise RuntimeError(
                 "Cannot connect to Ollama. Make sure it is installed and running: "
-                "https://ollama.com/"
+                f"{self.base_url} (https://ollama.com/)"
             ) from None
+        except requests.RequestException as exc:
+            raise RuntimeError(f"Cannot query Ollama at {self.base_url}: {exc}") from None
         return resp.json().get("models", [])
 
     def _resolve_num_ctx(self, model_name: str) -> int:

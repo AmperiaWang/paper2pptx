@@ -47,6 +47,15 @@ cd paper2ppt
 python main.py input.pdf --backend ollama --model qwen3:4b
 ```
 
+如果你的 Ollama 不在默认地址 `http://localhost:11434`（例如改了端口、运行在局域网机器或服务器上），可以通过环境变量或命令行参数指定：
+
+```sh
+OLLAMA_HOST=http://127.0.0.1:11434 python main.py input.pdf
+python main.py input.pdf --ollama-url http://127.0.0.1:11434
+```
+
+`--ollama-url` 也接受省略协议的写法，例如 `127.0.0.1:11434`。
+
 在使用在线大模型的场景下，你也可以通过 `--model` 参数指定模型：
 
 ```sh
